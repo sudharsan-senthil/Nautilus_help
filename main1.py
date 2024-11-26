@@ -194,7 +194,7 @@ for _ in range(1):
 		EsNo_r = 10**(EsNo_dB/10)
 		sigma2 = 1/(2*EsNo_r) # noise power per real dimension
 		t = 500
-		for i in t:
+		for i in range(t):
 			L = train_step_eager(sigma2)
 			total_iter = total_iter + 1
 			print(i)
