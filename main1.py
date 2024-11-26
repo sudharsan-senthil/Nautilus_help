@@ -197,7 +197,7 @@ for _ in range(1):
 		for i in t:
 			L = train_step_eager(sigma2)
 			total_iter = total_iter + 1
-
+			print(i)
 		break		
 
 checkpoint = tf.train.Checkpoint(model=model)
