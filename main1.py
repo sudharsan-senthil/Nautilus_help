@@ -179,21 +179,26 @@ def train_step_eager(sigma2):
 model = AE(enc_dims, dec_dims, batch_norm)
 
 for _ in range(1):
-    iterations = 500
-    print_interval = 100
+	iterations = 500
+	print_interval = 100
 
-    log_dir = "logs/open_loop/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    train_summary_writer = tf.summary.create_file_writer(log_dir)
+	log_dir = "logs/open_loop/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+	train_summary_writer = tf.summary.create_file_writer(log_dir)
 
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-    EsNo_dB_r = [10]
-    loss_sv = []
-    total_iter = 0 
-    for EsNo_dB in EsNo_dB_r:
-        print("EsNo = {:.1f} dB".format(EsNo_dB), flush=True)
-        EsNo_r = 10**(EsNo_dB/10)
-        sigma2 = 1/(2*EsNo_r) # noise power per real dimension
-        t = 100
-        for i in range(t):
-            L = train_step_eager(sigma2)
-            print("trng")
+	optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+	EsNo_dB_r = [10]
+	loss_sv = []
+	total_iter = 0 
+	for EsNo_dB in EsNo_dB_r:
+		print("EsNo = {:.1f} dB".format(EsNo_dB), flush=True)
+		EsNo_r = 10**(EsNo_dB/10)
+		sigma2 = 1/(2*EsNo_r) # noise power per real dimension
+		t = 500
+		for i in t:
+			L = train_step_eager(sigma2)
+			total_iter = total_iter + 1
+
+		break		
+
+checkpoint = tf.train.Checkpoint(model=model)
+save_path = checkpoint.save('/data/ae_model_ckpt')
