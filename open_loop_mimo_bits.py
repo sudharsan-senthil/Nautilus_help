@@ -1,11 +1,14 @@
 import numpy as np
 from numpy import sqrt, pi
 import scipy as sp
+from scipy import special
+from scipy.io import savemat
 import tensorflow as tf
+import time
+import datetime
 from keras.layers import BatchNormalization
 import sys
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 from scipy.stats import unitary_group
 from scipy.stats import ortho_group
 
@@ -47,15 +50,15 @@ EsNo_dB_r = [5,10,15,27]
 
 
 def gen_msgs(a):
-  block_length = k
-  numbers = tf.range(2**block_length)
-  binary_tensor = tf.bitwise.right_shift(
-      tf.expand_dims(numbers, axis=-1), tf.range(block_length)
-  ) & 1
-  binary_tensor = tf.reverse(binary_tensor, axis=[-1])
-  messages = tf.tile(binary_tensor,[a//M,1])
-  messages = tf.cast(messages, dtype=tf.int64)
-  return messages
+    block_length = k
+    numbers = tf.range(2**block_length)
+    binary_tensor = tf.bitwise.right_shift(
+        tf.expand_dims(numbers, axis=-1), tf.range(block_length)
+    ) & 1
+    binary_tensor = tf.reverse(binary_tensor, axis=[-1])
+    messages = tf.tile(binary_tensor, [a//M, 1])
+    messages = tf.cast(messages, dtype=tf.int64)
+    return messages
 
 def normalization(x): # power per tx antenna is 1
     """ x has shape [B, Tx*N]
@@ -75,8 +78,8 @@ def mimo_channel(xr, xi, Hr, Hi, sigma2):
         Hr,Hi have shape [B, Rx, Tx]
         y = H*x + n
     """
-    yr = tf.matmul(Hr,xr) - tf.matmul(Hi,xi)
-    yi = tf.matmul(Hr,xi) + tf.matmul(Hi,xr)
+    yr = tf.matmul(Hr, xr) - tf.matmul(Hi, xi)
+    yi = tf.matmul(Hr, xi) + tf.matmul(Hi, xr)
     yr = yr + tf.random.normal(tf.shape(yr), mean=0.0, stddev=tf.sqrt(tf.cast(sigma2, tf.float32)))
     yi = yi + tf.random.normal(tf.shape(yi), mean=0.0, stddev=tf.sqrt(tf.cast(sigma2, tf.float32)))
     return yr, yi
@@ -140,14 +143,14 @@ class AE(tf.Module):
         Hr = tf.repeat(Hr, M, axis=0)
         Hi = tf.repeat(Hi, M, axis=0)
         HrR = tf.reshape(Hr, [-1, Tx*Rx])
-        HiR = tf.reshape(Hi, [-1 ,Tx*Rx])
+        HiR = tf.reshape(Hi, [-1, Tx*Rx])
         
         x = self.Encoder(ohv)
         
-        xr = tf.reshape(x[:,0:N*Tx//2], [-1, Tx, N//2])
-        xi = tf.reshape(x[:,N*Tx//2:N*Tx], [-1, Tx, N//2])
+        xr = tf.reshape(x[:, 0:N*Tx//2], [-1, Tx, N//2])
+        xi = tf.reshape(x[:, N*Tx//2:N*Tx], [-1, Tx, N//2])
     
-        yr,yi = mimo_channel(xr, xi, Hr, Hi, sigma2)
+        yr, yi = mimo_channel(xr, xi, Hr, Hi, sigma2)
         
         yr = tf.reshape(yr, [-1, Rx*N//2])
         yi = tf.reshape(yi, [-1, Rx*N//2])
@@ -177,30 +180,21 @@ def train_step_eager(sigma2):
 model = AE(enc_dims, dec_dims, batch_norm)
 
 for _ in range(1):
-	iterations = 500
-	print_interval = 100
+    iterations = 500
+    print_interval = 100
 
-	log_dir = "logs/open_loop/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-	train_summary_writer = tf.summary.create_file_writer(log_dir)
+    log_dir = "logs/open_loop/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    train_summary_writer = tf.summary.create_file_writer(log_dir)
 
-	optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-	EsNo_dB_r = [10]
-	loss_sv = []
-	total_iter = 0 
-	for EsNo_dB in EsNo_dB_r:
-		print("EsNo = {:.1f} dB".format(EsNo_dB), flush=True)
-		EsNo_r = 10**(EsNo_dB/10)
-		sigma2 = 1/(2*EsNo_r) # noise power per real dimension
-		t = tqdm(range(1, iterations+1), desc="loss")
-		for i in t:
-			L = train_step_eager(sigma2)
-			total_iter = total_iter + 1
-
-			if i%print_interval==0 or i==1:
-				with train_summary_writer.as_default():
-					tf.summary.scalar('loss', L, step=total_iter)
-
-				t.set_description("loss={:.5f}".format(L))
-				t.refresh() # to show immediately the update
-				loss_sv.append(L)
-		break
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+    EsNo_dB_r = [10]
+    loss_sv = []
+    total_iter = 0 
+    for EsNo_dB in EsNo_dB_r:
+        print("EsNo = {:.1f} dB".format(EsNo_dB), flush=True)
+        EsNo_r = 10**(EsNo_dB/10)
+        sigma2 = 1/(2*EsNo_r) # noise power per real dimension
+        t = 100
+        for i in range(t):
+            L = train_step_eager(sigma2)
+            print("trng")
